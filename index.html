@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>NBA Nickname Guessing Game</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; padding: 50px; background: #f4f4f4; }
+        .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: inline-block; }
+        input { padding: 10px; width: 250px; }
+        button { padding: 10px 20px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 5px; }
+        #message { margin-top: 20px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <h1>Who is this?</h1>
+        <h2 id="nickname-display">---</h2>
+        
+        <input list="players" id="guess-input" placeholder="Type a player name...">
+        <datalist id="players"></datalist>
+        
+        <button onclick="checkGuess()">Submit</button>
+        <div id="message"></div>
+        <br>
+        <button onclick="nextRound()" style="background: #28a745;">Next Player</button>
+    </div>
+
+    <script>
+        // Load the JSON file when the page loads
+        async function loadGameData() {
+            try {
+                const response = await fetch('sample.json');
+                playerData = await response.json();
+        
+                // Initialize the game once data is loaded
+                populateDatalist();
+                nextRound();
+            } catch (error) {
+                console.error("Error loading JSON:", error);
+                document.getElementById('message').innerText = "Failed to load player data.";
+            }
+        }
+
+        function populateDatalist() {
+            const datalist = document.getElementById('players');
+            playerData.forEach(p => {
+                let option = document.createElement('option');
+                option.value = p.name;
+                datalist.appendChild(option);
+            });
+        }
+
+        // Call the loader instead of nextRound() at the bottom
+        loadGameData();
+
+        let currentPlayer = {};
+
+        // 1. Populate the datalist so the user can see all options
+        const datalist = document.getElementById('players');
+        playerData.forEach(p => {
+            let option = document.createElement('option');
+            option.value = p.name;
+            datalist.appendChild(option);
+        });
+
+        function nextRound() {
+            document.getElementById('message').innerText = "";
+            document.getElementById('guess-input').value = "";
+            
+            // Pick random player
+            currentPlayer = playerData[Math.floor(Math.random() * playerData.length)];
+            
+            // Pick random nickname from that player's list
+            const randomNickname = currentPlayer.nicknames[Math.floor(Math.random() * currentPlayer.nicknames.length)];
+            
+            document.getElementById('nickname-display').innerText = `"${randomNickname}"`;
+        }
+
+        function checkGuess() {
+            const userGuess = document.getElementById('guess-input').value.trim().toLowerCase();
+            const messageDiv = document.getElementById('message');
+    
+            // Normalize: remove apostrophes and extra spaces
+            const cleanGuess = userGuess.replace("'", "");
+            const fullName = currentPlayer.name.toLowerCase();
+            const cleanFullName = fullName.replace("'", "");
+    
+            // Split the name into parts (e.g., ["shaquille", "oneal"])
+            const nameParts = cleanFullName.split(' '); 
+
+            // Win if: 1. Exact match, 2. First name match, 3. Last name match
+            const isCorrect = (cleanGuess === cleanFullName) || nameParts.includes(cleanGuess);
+
+            if (isCorrect) {
+                messageDiv.innerHTML = `✅ Correct! It's <strong>${currentPlayer.name}</strong>`;
+                messageDiv.style.color = "green";
+            } else {
+                messageDiv.innerText = "❌ Try again!";
+                messageDiv.style.color = "red";
+            }
+        }
+    // 2. Check for an exact match OR a match on any part of the name
+        const isCorrect = (userGuess === fullName) || nameParts.includes(userGuess);
+    
+        if (isCorrect) {
+            messageDiv.innerText = `✅ Correct! It's ${currentPlayer.name}`;
+            messageDiv.style.color = "green";
+        } else {
+            messageDiv.innerText = "❌ Try again!";
+            messageDiv.style.color = "red";
+        }
+    
+
+        // Start the first round
+        nextRound();
+    </script>
+</body>
+</html>
