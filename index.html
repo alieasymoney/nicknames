@@ -267,14 +267,31 @@
             const isActiveOnly = document.getElementById('active-only-toggle').checked;
             
             if (isActiveOnly) {
-                // Filter for players whose "years" string contains "2025" or "2026"
-                playablePlayers = allPlayers.filter(p => p.years.includes("2025-25"));
+                playablePlayers = allPlayers.filter(p => {
+                    // Safety check: if years is missing, skip
+                    if (!p.years) return false;
+
+                    // 1. Grab the last 4 characters of the string
+                    // Example: "2003-04 - 2025-26" -> ends with "-26"
+                    // Example: "2003 - 2026" -> ends with "2026"
+                    
+                    // Let's try to find "2025" or "2026" anywhere in the string
+                    // This is safer than exact matching
+                    const isRecent = p.years.includes("2025") || p.years.includes("2026");
+                    
+                    return isRecent;
+                });
             } else {
                 playablePlayers = [...allPlayers];
             }
 
-            if (playablePlayers.length === 0 && allPlayers.length > 0) {
-                alert("No active players found!");
+            // Debugging: If it's still empty, this will tell us why in the Console (F12)
+            if (playablePlayers.length === 0 && isActiveOnly) {
+                console.log("DEBUG: No active players found.");
+                console.log("Here is the 'years' value of the first player in your list:");
+                console.log(allPlayers[0].name, ":", allPlayers[0].years);
+                
+                alert("No active players found! Check the Console (F12) to see what your 'years' data looks like.");
                 document.getElementById('active-only-toggle').checked = false;
                 playablePlayers = [...allPlayers];
             }
@@ -471,4 +488,5 @@
     </script>
 </body>
 </html>
+
 
