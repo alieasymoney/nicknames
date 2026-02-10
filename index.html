@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NBA Nickname Guessing Game</title>
+    <title>NBA Guessing Game V3</title>
     <style>
         :root {
             --primary: #1d428a; /* NBA Blue */
@@ -33,7 +33,7 @@
             text-align: center;
         }
 
-        /* Square Silhouette */
+        /* Square Image Container */
         .player-image-container {
             width: 200px;
             height: 200px;
@@ -49,41 +49,43 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
-            transition: opacity 0.5s ease;
         }
 
         h1 { margin: 0; color: #333; font-size: 1.5rem; text-transform: uppercase; letter-spacing: 1px; }
         h2 { margin: 10px 0 20px; color: var(--primary); font-size: 2rem; font-weight: 800; }
 
-        /* --- Input Section (Custom Dropdown) --- */
-        .input-group {
-            position: relative;
+        /* --- Settings Toggle --- */
+        .settings-bar {
             margin-bottom: 20px;
-            width: 70%;
-            margin-left: auto;
-            margin-right: auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.9rem;
+            color: #555;
         }
 
-        input {
+        /* --- Input Section --- */
+        .input-wrapper {
+            position: relative;
+            width: 80%;
+            margin: 0 auto 20px;
+        }
+
+        input[type="text"] {
             width: 100%;
             padding: 15px;
             font-size: 1.1rem;
             border: 2px solid #ddd;
             border-radius: 8px;
             outline: none;
-            box-sizing: border-box; /* Ensures padding doesn't break width */
+            box-sizing: border-box; 
         }
 
-        input:focus { border-color: var(--primary); }
-        
-        input.error {
-            border-color: var(--secondary);
-            background-color: #fff0f0;
-            color: var(--secondary);
-        }
+        input[type="text"]:focus { border-color: var(--primary); }
 
         /* Custom Suggestions Box */
-        .suggestions-box {
+        .suggestions-list {
             position: absolute;
             top: 100%;
             left: 0;
@@ -94,45 +96,24 @@
             border-radius: 0 0 8px 8px;
             max-height: 200px;
             overflow-y: auto;
-            z-index: 10;
-            display: none; /* Hidden by default */
+            z-index: 50;
+            display: none;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
             text-align: left;
         }
 
         .suggestion-item {
-            padding: 10px 15px;
+            padding: 12px;
             cursor: pointer;
             border-bottom: 1px solid #eee;
         }
 
-        .suggestion-item:hover {
-            background-color: #f0f0f0;
-        }
-
-        .suggestion-item strong {
-            color: var(--primary);
-        }
-
-        button.guess-btn {
-            margin-top: 10px;
-            padding: 15px 25px;
-            font-size: 1.1rem;
-            background-color: var(--primary);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            width: 40%;
-            transition: background 0.2s;
-        }
-
-        button.guess-btn:hover { background-color: #143066; }
+        .suggestion-item:hover { background-color: #f0f0f0; }
 
         /* --- Hint Boxes --- */
         .hint-container {
             display: grid;
-            grid-template-columns: 1fr; 
+            grid-template-columns: 1fr;
             gap: 10px;
             margin-top: 20px;
         }
@@ -141,14 +122,11 @@
             background: #eee;
             border-radius: 8px;
             padding: 15px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
             font-size: 0.9rem;
             color: #777;
             text-align: center;
             border: 2px dashed #ccc;
-            transition: all 0.3s ease;
+            min-height: 20px;
         }
 
         .hint-box.revealed {
@@ -159,16 +137,16 @@
             font-weight: bold;
         }
 
-        /* --- Modal (Game Over) --- */
+        /* --- Game Over Modal --- */
         .modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.8);
+            background: rgba(0,0,0,0.85);
             display: none;
             justify-content: center; align-items: center;
             z-index: 1000;
         }
 
-        .modal-content {
+        .modal-box {
             background: white;
             padding: 40px;
             border-radius: 15px;
@@ -178,31 +156,44 @@
             animation: popIn 0.3s ease;
         }
 
-        .modal-content img {
-            width: 150px; height: 150px; 
-            border-radius: 15px; /* Square modal image too */
-            margin-bottom: 20px; border: 5px solid;
+        .modal-box img {
+            width: 150px; height: 150px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            border: 4px solid #333;
             object-fit: cover;
         }
-        
-        .modal-content.win img { border-color: #28a745; }
-        .modal-content.loss img { border-color: var(--secondary); }
 
         .modal-title { font-size: 2rem; margin-bottom: 10px; font-weight: bold; }
-        .win .modal-title { color: #28a745; }
-        .loss .modal-title { color: var(--secondary); }
+        .win-text { color: #28a745; }
+        .lose-text { color: var(--secondary); }
 
-        .play-again-btn {
+        .btn-reset {
             background-color: #333;
-            margin-top: 20px;
-            padding: 12px 24px; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 1rem;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            margin-top: 15px;
+        }
+        
+        button.guess-btn {
+            padding: 10px 30px;
+            font-size: 1.2rem;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-bottom: 10px;
         }
 
         @keyframes popIn {
             from { transform: scale(0.8); opacity: 0; }
             to { transform: scale(1); opacity: 1; }
         }
-
     </style>
 </head>
 <body>
@@ -215,13 +206,18 @@
         <h1>Who is...</h1>
         <h2 id="nickname-display">"Loading..."</h2>
 
-        <div class="input-group">
-            <input type="text" id="guess-input" placeholder="Type a name..." autocomplete="off">
-            <div id="suggestions" class="suggestions-box"></div>
+        <div class="settings-bar">
+            <input type="checkbox" id="active-only-toggle" onchange="toggleActiveOnly()">
+            <label for="active-only-toggle" style="cursor: pointer;">Active Players Only</label>
         </div>
-        
+
+        <div class="input-wrapper">
+            <input type="text" id="guess-input" placeholder="Type a name..." autocomplete="off">
+            <div id="suggestions" class="suggestions-list"></div>
+        </div>
+
         <button class="guess-btn" onclick="submitGuess()">Guess</button>
-        <div id="status-msg" style="height: 20px; color: var(--secondary); margin-top: 10px;"></div>
+        <div id="status-msg" style="height: 20px; font-weight: bold;"></div>
 
         <div class="hint-container">
             <div id="hint-1" class="hint-box">Hint 1</div>
@@ -233,45 +229,70 @@
     </div>
 
     <div id="game-modal" class="modal-overlay">
-        <div class="modal-content" id="modal-content">
-            <img id="modal-img" src="" alt="Player Reveal">
-            <div class="modal-title" id="modal-title"></div>
+        <div class="modal-box">
+            <img id="modal-img" src="" alt="">
+            <div id="modal-title" class="modal-title"></div>
             <div id="modal-msg"></div>
-            <button class="play-again-btn" onclick="nextRound()">Play Again</button>
+            <button class="btn-reset" onclick="nextRound()">Play Again</button>
         </div>
     </div>
 
-    <script>
-        let playerData = [];
+<script>
+        let allPlayers = [];      
+        let playablePlayers = []; 
         let currentPlayer = {};
         let wrongGuesses = 0;
         let guessedNames = [];
         const maxGuesses = 5;
 
-        // 1. Load Data
+        // Load Data
         async function loadGame() {
             try {
                 const response = await fetch('players.json');
-                playerData = await response.json();
-                nextRound();
+                allPlayers = await response.json();
+                
+                // Start with full list by default
+                playablePlayers = [...allPlayers];
+                
+                // Initial filter check (in case browser remembered the checkbox state)
+                toggleActiveOnly();
             } catch (error) {
-                console.error("Error loading JSON:", error);
-                document.getElementById('nickname-display').innerText = "Error loading data.";
+                console.error("Error:", error);
+                document.getElementById('nickname-display').innerText = "Data Error";
             }
         }
 
-        // 2. Start New Round
+        // --- FILTER FUNCTION ---
+        function toggleActiveOnly() {
+            const isActiveOnly = document.getElementById('active-only-toggle').checked;
+            
+            if (isActiveOnly) {
+                // Filter for players whose "years" string contains "2025" or "2026"
+                playablePlayers = allPlayers.filter(p => p.years.includes("2026"));
+            } else {
+                playablePlayers = [...allPlayers];
+            }
+
+            if (playablePlayers.length === 0 && allPlayers.length > 0) {
+                alert("No active players found!");
+                document.getElementById('active-only-toggle').checked = false;
+                playablePlayers = [...allPlayers];
+            }
+
+            console.log(`Pool size: ${playablePlayers.length} players`);
+            nextRound(); 
+        }
+
         function nextRound() {
             wrongGuesses = 0;
             guessedNames = [];
+            
+            // Reset UI
             document.getElementById('game-modal').style.display = 'none';
             document.getElementById('guess-input').value = "";
-            document.getElementById('guess-input').classList.remove('error');
             document.getElementById('status-msg').innerText = "";
+            document.getElementById('main-player-img').src = "silhouette.png";
             document.getElementById('suggestions').style.display = 'none';
-            
-            // Reset Image to Silhouette
-            document.getElementById('main-player-img').src = "silhouette.png"; 
 
             // Reset Hints
             for(let i=1; i<=5; i++) {
@@ -281,41 +302,44 @@
             }
 
             // Pick Random Player
-            currentPlayer = playerData[Math.floor(Math.random() * playerData.length)];
-            const randomNick = currentPlayer.nicknames[Math.floor(Math.random() * currentPlayer.nicknames.length)];
-            document.getElementById('nickname-display').innerText = `"${randomNick}"`;
-
-            console.log("Answer:", currentPlayer.name); // Debugging
+            if (playablePlayers.length > 0) {
+                currentPlayer = playablePlayers[Math.floor(Math.random() * playablePlayers.length)];
+                const randomNick = currentPlayer.nicknames[Math.floor(Math.random() * currentPlayer.nicknames.length)];
+                document.getElementById('nickname-display').innerText = `"${randomNick}"`;
+                console.log("Solution:", currentPlayer.name); 
+            }
         }
 
-        // --- 3. Custom Search Logic (New!) ---
+        // --- CUSTOM DROPDOWN ---
         const inputField = document.getElementById('guess-input');
         const suggestionsBox = document.getElementById('suggestions');
 
         inputField.addEventListener('input', function() {
             const query = this.value.toLowerCase().trim();
             suggestionsBox.innerHTML = '';
-            
-            // Only show suggestions if 3 or more characters typed
+
             if (query.length < 3) {
                 suggestionsBox.style.display = 'none';
                 return;
             }
 
-            const matches = playerData.filter(p => p.name.toLowerCase().includes(query));
-            
+            // Filter suggestions based on CURRENT pool (active vs all)
+            const matches = playablePlayers.filter(p => p.name.toLowerCase().includes(query)).slice(0, 5);
+
             if (matches.length > 0) {
                 suggestionsBox.style.display = 'block';
-                matches.forEach(match => {
+                matches.forEach((match, index) => {
                     const div = document.createElement('div');
                     div.className = 'suggestion-item';
-                    // Highlight the matching part
-                    div.innerHTML = match.name.replace(new RegExp(query, "gi"), (match) => `<strong>${match}</strong>`);
+                    div.innerText = match.name;
                     
+                    // Add a special class to the first item for "Enter" logic
+                    if (index === 0) div.id = "top-suggestion"; 
+
                     div.onclick = function() {
                         inputField.value = match.name;
                         suggestionsBox.style.display = 'none';
-                        submitGuess(); // Auto-submit on click? Or remove this line if you want them to press button
+                        submitGuess(); 
                     };
                     suggestionsBox.appendChild(div);
                 });
@@ -324,122 +348,98 @@
             }
         });
 
-        // Hide suggestions when clicking outside
         document.addEventListener('click', function(e) {
             if (e.target !== inputField && e.target !== suggestionsBox) {
                 suggestionsBox.style.display = 'none';
             }
         });
 
-
-        // 4. Game Logic
+        // --- GAME LOGIC ---
         function submitGuess() {
-            const input = document.getElementById('guess-input');
-            const userGuess = input.value.trim();
+            const userGuess = inputField.value.trim();
+            if (!userGuess) return;
+
             const cleanGuess = normalize(userGuess);
             const cleanName = normalize(currentPlayer.name);
-
-            if (!cleanGuess) return;
-
-            // Check correctness
             const nameParts = cleanName.split(' ');
-            const isCorrect = (cleanGuess === cleanName) || nameParts.includes(cleanGuess);
 
-            if (isCorrect) {
+            if (cleanGuess === cleanName || nameParts.includes(cleanGuess)) {
                 endGame(true);
             } else {
                 handleWrongGuess(userGuess);
             }
             
-            input.value = ""; 
+            inputField.value = "";
             suggestionsBox.style.display = 'none';
         }
 
         function handleWrongGuess(wrongName) {
-            const input = document.getElementById('guess-input');
-            
-            // Check for duplicate guess
             if (guessedNames.includes(wrongName.toLowerCase())) {
-                statusMsg("Already guessed!", true);
+                document.getElementById('status-msg').innerText = "Already guessed!";
+                document.getElementById('status-msg').style.color = "orange";
                 return;
             }
 
             guessedNames.push(wrongName.toLowerCase());
             wrongGuesses++;
+            
+            document.getElementById('status-msg').innerText = "Wrong!";
+            document.getElementById('status-msg').style.color = "red";
 
-            // Visual feedback
-            input.classList.add('error');
-            setTimeout(() => input.classList.remove('error'), 1000);
-
-            // Reveal Hint
             revealHint(wrongGuesses);
 
-            // Check Game Over
             if (wrongGuesses >= maxGuesses) {
-                endGame(false); // Trigger Loss Screen
+                endGame(false);
             }
         }
 
         function revealHint(num) {
-            if (num > 5) return;
             const box = document.getElementById(`hint-${num}`);
             let text = "";
 
             switch(num) {
-                case 1: // Height/Weight/Pos
-                    text = `${currentPlayer.height} | ${currentPlayer.weight} | ${currentPlayer.position}`;
-                    break;
-                case 2: // Years
-                    text = `Active: ${currentPlayer.years}`;
-                    break;
-                case 3: // Accolades (Previously Hints 4)
+                case 1: text = `Position: ${currentPlayer.position}`; break;
+                case 2: text = `Years: ${currentPlayer.years}`; break;
+                case 3: 
                     let awards = currentPlayer.awards.split('|').slice(0, 2).join(', ');
-                    text = awards || "No Major Awards Listed";
+                    text = awards || "No Major Awards";
                     break;
-                case 4: // Teams (Previously Hint 5)
-                    text = currentPlayer.teams;
-                    break;
-                case 5: // IMAGE REVEAL (New!)
+                case 4: text = `Teams: ${currentPlayer.teams}`; break;
+                case 5: 
                     text = "Photo Revealed!";
                     let imgSrc = currentPlayer.image;
-                    if (imgSrc === "No Photo" || !imgSrc) imgSrc = "silhouette.png";
-                    document.getElementById('main-player-img').src = imgSrc; // Update Main Image
+                    if (!imgSrc || imgSrc === "No Photo") imgSrc = "silhouette.png";
+                    document.getElementById('main-player-img').src = imgSrc;
                     break;
             }
 
-            box.innerText = text;
-            box.classList.add('revealed');
+            if (box) {
+                box.innerText = text;
+                box.classList.add('revealed');
+            }
         }
 
         function endGame(isWin) {
             const modal = document.getElementById('game-modal');
-            const modalContent = document.getElementById('modal-content');
             const title = document.getElementById('modal-title');
             const msg = document.getElementById('modal-msg');
             const img = document.getElementById('modal-img');
 
-            modal.style.display = 'flex';
-            
             let imgSrc = currentPlayer.image;
-            if (imgSrc === "No Photo" || !imgSrc) imgSrc = "silhouette.png";
+            if (!imgSrc || imgSrc === "No Photo") imgSrc = "silhouette.png";
             img.src = imgSrc;
-            
+
             if (isWin) {
-                modalContent.className = "modal-content win";
-                title.innerText = "Congratulations!";
-                msg.innerHTML = `You correctly guessed <strong>${currentPlayer.name}</strong>`;
+                title.innerText = "CORRECT!";
+                title.className = "modal-title win-text";
+                msg.innerHTML = `It was <strong>${currentPlayer.name}</strong>`;
             } else {
-                modalContent.className = "modal-content loss";
-                title.innerText = "Game Over";
+                title.innerText = "GAME OVER";
+                title.className = "modal-title lose-text";
                 msg.innerHTML = `The player was <strong>${currentPlayer.name}</strong>`;
             }
-        }
 
-        function statusMsg(txt, isError) {
-            const elem = document.getElementById('status-msg');
-            elem.innerText = txt;
-            elem.style.color = isError ? "var(--secondary)" : "green";
-            setTimeout(() => elem.innerText = "", 2000);
+            modal.style.display = 'flex';
         }
 
         function normalize(str) {
@@ -448,10 +448,23 @@
 
         loadGame();
 
-        // Enter key support
-        document.getElementById('guess-input').addEventListener("keypress", function(event) {
+        // --- UPDATED ENTER KEY LOGIC ---
+        inputField.addEventListener("keydown", function(event) {
             if (event.key === "Enter") {
-                submitGuess();
+                event.preventDefault(); // Stop form submission if inside a form
+                
+                const topSuggestion = document.getElementById('top-suggestion');
+                const suggestionsVisible = suggestionsBox.style.display !== 'none';
+
+                // If suggestions are showing, grab the first one
+                if (suggestionsVisible && topSuggestion) {
+                    inputField.value = topSuggestion.innerText;
+                    suggestionsBox.style.display = 'none';
+                    submitGuess();
+                } else {
+                    // Otherwise, just submit whatever is typed
+                    submitGuess();
+                }
             }
         });
 
