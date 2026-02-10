@@ -33,53 +33,89 @@
             text-align: center;
         }
 
-        /* UPDATED CSS: Made it square instead of round circle */
+        /* Square Silhouette */
         .player-image-container {
             width: 200px;
             height: 200px;
             margin: 0 auto 20px;
-            border-radius: 10px; /* Changed from 50% to 10px for square */
+            border-radius: 15px;
             overflow: hidden;
             border: 5px solid var(--primary);
             background: #eee;
+            position: relative;
         }
 
         .player-image-container img {
             width: 100%;
             height: 100%;
             object-fit: cover;
+            transition: opacity 0.5s ease;
         }
 
         h1 { margin: 0; color: #333; font-size: 1.5rem; text-transform: uppercase; letter-spacing: 1px; }
         h2 { margin: 10px 0 20px; color: var(--primary); font-size: 2rem; font-weight: 800; }
 
-        /* --- Input Section --- */
+        /* --- Input Section (Custom Dropdown) --- */
         .input-group {
             position: relative;
             margin-bottom: 20px;
+            width: 70%;
+            margin-left: auto;
+            margin-right: auto;
         }
 
         input {
-            width: 70%;
+            width: 100%;
             padding: 15px;
             font-size: 1.1rem;
             border: 2px solid #ddd;
             border-radius: 8px;
             outline: none;
-            transition: border-color 0.3s;
+            box-sizing: border-box; /* Ensures padding doesn't break width */
         }
 
         input:focus { border-color: var(--primary); }
         
-        /* The Red Error State */
         input.error {
             border-color: var(--secondary);
-            color: var(--secondary);
-            font-weight: bold;
             background-color: #fff0f0;
+            color: var(--secondary);
         }
 
-        button {
+        /* Custom Suggestions Box */
+        .suggestions-box {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            width: 100%;
+            background: white;
+            border: 1px solid #ddd;
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 10;
+            display: none; /* Hidden by default */
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            text-align: left;
+        }
+
+        .suggestion-item {
+            padding: 10px 15px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+        }
+
+        .suggestion-item:hover {
+            background-color: #f0f0f0;
+        }
+
+        .suggestion-item strong {
+            color: var(--primary);
+        }
+
+        button.guess-btn {
+            margin-top: 10px;
             padding: 15px 25px;
             font-size: 1.1rem;
             background-color: var(--primary);
@@ -87,15 +123,15 @@
             border: none;
             border-radius: 8px;
             cursor: pointer;
+            width: 40%;
             transition: background 0.2s;
         }
 
-        button:hover { background-color: #143066; }
+        button.guess-btn:hover { background-color: #143066; }
 
-        /* --- Hint Boxes (UPDATED CSS) --- */
+        /* --- Hint Boxes --- */
         .hint-container {
             display: grid;
-            /* Changed from repeat(5, 1fr) to 1fr to stack vertically */
             grid-template-columns: 1fr; 
             gap: 10px;
             margin-top: 20px;
@@ -104,7 +140,6 @@
         .hint-box {
             background: #eee;
             border-radius: 8px;
-            /* Removed fixed height, added padding for vertical look */
             padding: 15px;
             display: flex;
             align-items: center;
@@ -122,14 +157,13 @@
             border-color: var(--primary);
             color: #000;
             font-weight: bold;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
         }
 
-        /* --- Modal (Win/Loss Screen) --- */
+        /* --- Modal (Game Over) --- */
         .modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.8);
-            display: none; /* Hidden by default */
+            display: none;
             justify-content: center; align-items: center;
             z-index: 1000;
         }
@@ -140,14 +174,15 @@
             border-radius: 15px;
             text-align: center;
             max-width: 400px;
+            width: 90%;
             animation: popIn 0.3s ease;
         }
 
         .modal-content img {
             width: 150px; height: 150px; 
-            /* Keeping the modal reveal image round, let me know if you want this square too */
-            border-radius: 50%;
+            border-radius: 15px; /* Square modal image too */
             margin-bottom: 20px; border: 5px solid;
+            object-fit: cover;
         }
         
         .modal-content.win img { border-color: #28a745; }
@@ -160,7 +195,7 @@
         .play-again-btn {
             background-color: #333;
             margin-top: 20px;
-            padding: 10px 20px; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 1rem;
+            padding: 12px 24px; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 1rem;
         }
 
         @keyframes popIn {
@@ -181,12 +216,12 @@
         <h2 id="nickname-display">"Loading..."</h2>
 
         <div class="input-group">
-            <input type="text" id="guess-input" list="player-list" placeholder="Guess the player..." autocomplete="off">
-            <datalist id="player-list"></datalist>
-            <button onclick="submitGuess()">Guess</button>
+            <input type="text" id="guess-input" placeholder="Type a name..." autocomplete="off">
+            <div id="suggestions" class="suggestions-box"></div>
         </div>
-
-        <div id="status-msg" style="height: 20px; color: var(--secondary); margin-bottom: 10px;"></div>
+        
+        <button class="guess-btn" onclick="submitGuess()">Guess</button>
+        <div id="status-msg" style="height: 20px; color: var(--secondary); margin-top: 10px;"></div>
 
         <div class="hint-container">
             <div id="hint-1" class="hint-box">Hint 1</div>
@@ -218,7 +253,6 @@
             try {
                 const response = await fetch('players.json');
                 playerData = await response.json();
-                populateDatalist();
                 nextRound();
             } catch (error) {
                 console.error("Error loading JSON:", error);
@@ -226,26 +260,18 @@
             }
         }
 
-        function populateDatalist() {
-            const datalist = document.getElementById('player-list');
-            datalist.innerHTML = ''; // Clear existing
-            playerData.forEach(p => {
-                let option = document.createElement('option');
-                option.value = p.name;
-                datalist.appendChild(option);
-            });
-        }
-
         // 2. Start New Round
         function nextRound() {
-            // Reset State
             wrongGuesses = 0;
             guessedNames = [];
             document.getElementById('game-modal').style.display = 'none';
             document.getElementById('guess-input').value = "";
             document.getElementById('guess-input').classList.remove('error');
             document.getElementById('status-msg').innerText = "";
-            document.getElementById('main-player-img').src = "silhouette.png"; // Reset to silhouette
+            document.getElementById('suggestions').style.display = 'none';
+            
+            // Reset Image to Silhouette
+            document.getElementById('main-player-img').src = "silhouette.png"; 
 
             // Reset Hints
             for(let i=1; i<=5; i++) {
@@ -256,26 +282,67 @@
 
             // Pick Random Player
             currentPlayer = playerData[Math.floor(Math.random() * playerData.length)];
-            
-            // Pick Random Nickname
             const randomNick = currentPlayer.nicknames[Math.floor(Math.random() * currentPlayer.nicknames.length)];
             document.getElementById('nickname-display').innerText = `"${randomNick}"`;
 
-            console.log("Answer:", currentPlayer.name); // For debugging
+            console.log("Answer:", currentPlayer.name); // Debugging
         }
 
-        // 3. Check Logic
+        // --- 3. Custom Search Logic (New!) ---
+        const inputField = document.getElementById('guess-input');
+        const suggestionsBox = document.getElementById('suggestions');
+
+        inputField.addEventListener('input', function() {
+            const query = this.value.toLowerCase().trim();
+            suggestionsBox.innerHTML = '';
+            
+            // Only show suggestions if 3 or more characters typed
+            if (query.length < 3) {
+                suggestionsBox.style.display = 'none';
+                return;
+            }
+
+            const matches = playerData.filter(p => p.name.toLowerCase().includes(query));
+            
+            if (matches.length > 0) {
+                suggestionsBox.style.display = 'block';
+                matches.forEach(match => {
+                    const div = document.createElement('div');
+                    div.className = 'suggestion-item';
+                    // Highlight the matching part
+                    div.innerHTML = match.name.replace(new RegExp(query, "gi"), (match) => `<strong>${match}</strong>`);
+                    
+                    div.onclick = function() {
+                        inputField.value = match.name;
+                        suggestionsBox.style.display = 'none';
+                        submitGuess(); // Auto-submit on click? Or remove this line if you want them to press button
+                    };
+                    suggestionsBox.appendChild(div);
+                });
+            } else {
+                suggestionsBox.style.display = 'none';
+            }
+        });
+
+        // Hide suggestions when clicking outside
+        document.addEventListener('click', function(e) {
+            if (e.target !== inputField && e.target !== suggestionsBox) {
+                suggestionsBox.style.display = 'none';
+            }
+        });
+
+
+        // 4. Game Logic
         function submitGuess() {
             const input = document.getElementById('guess-input');
             const userGuess = input.value.trim();
             const cleanGuess = normalize(userGuess);
             const cleanName = normalize(currentPlayer.name);
-            const nameParts = cleanName.split(' ');
 
-            // Empty check
             if (!cleanGuess) return;
 
-            // Check correctness (Full name, First name, or Last name)
+            // Check correctness
+            const nameParts = cleanName.split(' ');
             const isCorrect = (cleanGuess === cleanName) || nameParts.includes(cleanGuess);
 
             if (isCorrect) {
@@ -284,35 +351,32 @@
                 handleWrongGuess(userGuess);
             }
             
-            // Clear input after guess
             input.value = ""; 
+            suggestionsBox.style.display = 'none';
         }
 
         function handleWrongGuess(wrongName) {
             const input = document.getElementById('guess-input');
             
-            // If they already guessed this, just flash red
+            // Check for duplicate guess
             if (guessedNames.includes(wrongName.toLowerCase())) {
-                input.classList.add('error');
-                document.getElementById('status-msg').innerText = "Already guessed!";
-                setTimeout(() => input.classList.remove('error'), 1000);
+                statusMsg("Already guessed!", true);
                 return;
             }
 
-            // Register new wrong guess
             guessedNames.push(wrongName.toLowerCase());
             wrongGuesses++;
 
-            // Turn input red to signify wrong
+            // Visual feedback
             input.classList.add('error');
             setTimeout(() => input.classList.remove('error'), 1000);
 
             // Reveal Hint
             revealHint(wrongGuesses);
 
-            // Check for Game Over (if they use all 5 hints and fail)
+            // Check Game Over
             if (wrongGuesses >= maxGuesses) {
-               document.getElementById('status-msg').innerText = "Out of hints! Try again.";
+                endGame(false); // Trigger Loss Screen
             }
         }
 
@@ -321,30 +385,25 @@
             const box = document.getElementById(`hint-${num}`);
             let text = "";
 
-            // Mapping your requested hints to boxes
-            // Hint 1: Size & Position
-            // Hint 2: Years
-            // Hint 3: Career Stats
-            // Hint 4: Awards
-            // Hint 5: Teams
-            
             switch(num) {
-                case 1: 
+                case 1: // Height/Weight/Pos
                     text = `${currentPlayer.height} | ${currentPlayer.weight} | ${currentPlayer.position}`;
                     break;
-                case 2: 
+                case 2: // Years
                     text = `Active: ${currentPlayer.years}`;
                     break;
-                case 3: 
-                    text = `${currentPlayer.points_avg} PPG | ${currentPlayer.rebounds_avg} RPG | ${currentPlayer.assists_avg} APG`;
+                case 3: // Accolades (Previously Hints 4)
+                    let awards = currentPlayer.awards.split('|').slice(0, 2).join(', ');
+                    text = awards || "No Major Awards Listed";
                     break;
-                case 4: 
-                     // Grab top 2 awards or 'None' to fit in box
-                     let awards = currentPlayer.awards.split('|').slice(0, 2).join(', ');
-                     text = awards || "No Major Awards";
-                     break;
-                case 5: 
-                    text = currentPlayer.teams; // Might be long, CSS handles wrapping
+                case 4: // Teams (Previously Hint 5)
+                    text = currentPlayer.teams;
+                    break;
+                case 5: // IMAGE REVEAL (New!)
+                    text = "Photo Revealed!";
+                    let imgSrc = currentPlayer.image;
+                    if (imgSrc === "No Photo" || !imgSrc) imgSrc = "silhouette.png";
+                    document.getElementById('main-player-img').src = imgSrc; // Update Main Image
                     break;
             }
 
@@ -360,32 +419,36 @@
             const img = document.getElementById('modal-img');
 
             modal.style.display = 'flex';
-            img.src = currentPlayer.image || "silhouette.png"; // Show real photo
+            
+            let imgSrc = currentPlayer.image;
+            if (imgSrc === "No Photo" || !imgSrc) imgSrc = "silhouette.png";
+            img.src = imgSrc;
             
             if (isWin) {
                 modalContent.className = "modal-content win";
                 title.innerText = "Congratulations!";
                 msg.innerHTML = `You correctly guessed <strong>${currentPlayer.name}</strong>`;
             } else {
-                // This is triggered if you add a "Give Up" button later
                 modalContent.className = "modal-content loss";
-                title.innerText = "Wrong!";
+                title.innerText = "Game Over";
                 msg.innerHTML = `The player was <strong>${currentPlayer.name}</strong>`;
             }
         }
 
-        // Utility: Remove accents and lower case
-        function normalize(str) {
-            return str.toLowerCase()
-                      .normalize("NFD")
-                      .replace(/[\u0300-\u036f]/g, "")
-                      .replace(/'/g, ""); // Remove apostrophes
+        function statusMsg(txt, isError) {
+            const elem = document.getElementById('status-msg');
+            elem.innerText = txt;
+            elem.style.color = isError ? "var(--secondary)" : "green";
+            setTimeout(() => elem.innerText = "", 2000);
         }
 
-        // Start
+        function normalize(str) {
+            return str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/'/g, "");
+        }
+
         loadGame();
 
-        // Allow "Enter" key to submit
+        // Enter key support
         document.getElementById('guess-input').addEventListener("keypress", function(event) {
             if (event.key === "Enter") {
                 submitGuess();
