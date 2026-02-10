@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NBA Nickname Guessing Game</title>
+    <style>
+        :root {
+            --primary: #1d428a; /* NBA Blue */
+            --secondary: #c8102e; /* NBA Red */
+            --bg-color: #f4f4f4;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: var(--bg-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        /* --- Main Game Card --- */
+        .game-card {
+            background: white;
+            width: 100%;
+            max-width: 600px;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        /* UPDATED CSS: Made it square instead of round circle */
+        .player-image-container {
+            width: 200px;
+            height: 200px;
+            margin: 0 auto 20px;
+            border-radius: 10px; /* Changed from 50% to 10px for square */
+            overflow: hidden;
+            border: 5px solid var(--primary);
+            background: #eee;
+        }
+
+        .player-image-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        h1 { margin: 0; color: #333; font-size: 1.5rem; text-transform: uppercase; letter-spacing: 1px; }
+        h2 { margin: 10px 0 20px; color: var(--primary); font-size: 2rem; font-weight: 800; }
+
+        /* --- Input Section --- */
+        .input-group {
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        input {
+            width: 70%;
+            padding: 15px;
+            font-size: 1.1rem;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        input:focus { border-color: var(--primary); }
+        
+        /* The Red Error State */
+        input.error {
+            border-color: var(--secondary);
+            color: var(--secondary);
+            font-weight: bold;
+            background-color: #fff0f0;
+        }
+
+        button {
+            padding: 15px 25px;
+            font-size: 1.1rem;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        button:hover { background-color: #143066; }
+
+        /* --- Hint Boxes (UPDATED CSS) --- */
+        .hint-container {
+            display: grid;
+            /* Changed from repeat(5, 1fr) to 1fr to stack vertically */
+            grid-template-columns: 1fr; 
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .hint-box {
+            background: #eee;
+            border-radius: 8px;
+            /* Removed fixed height, added padding for vertical look */
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            color: #777;
+            text-align: center;
+            border: 2px dashed #ccc;
+            transition: all 0.3s ease;
+        }
+
+        .hint-box.revealed {
+            background: #e7f3ff;
+            border-style: solid;
+            border-color: var(--primary);
+            color: #000;
+            font-weight: bold;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        /* --- Modal (Win/Loss Screen) --- */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: none; /* Hidden by default */
+            justify-content: center; align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            text-align: center;
+            max-width: 400px;
+            animation: popIn 0.3s ease;
+        }
+
+        .modal-content img {
+            width: 150px; height: 150px; 
+            /* Keeping the modal reveal image round, let me know if you want this square too */
+            border-radius: 50%;
+            margin-bottom: 20px; border: 5px solid;
+        }
+        
+        .modal-content.win img { border-color: #28a745; }
+        .modal-content.loss img { border-color: var(--secondary); }
+
+        .modal-title { font-size: 2rem; margin-bottom: 10px; font-weight: bold; }
+        .win .modal-title { color: #28a745; }
+        .loss .modal-title { color: var(--secondary); }
+
+        .play-again-btn {
+            background-color: #333;
+            margin-top: 20px;
+            padding: 10px 20px; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 1rem;
+        }
+
+        @keyframes popIn {
+            from { transform: scale(0.8); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="game-card">
+        <div class="player-image-container">
+            <img src="silhouette.png" id="main-player-img" alt="Who is this?">
+        </div>
+
+        <h1>Who is...</h1>
+        <h2 id="nickname-display">"Loading..."</h2>
+
+        <div class="input-group">
+            <input type="text" id="guess-input" list="player-list" placeholder="Guess the player..." autocomplete="off">
+            <datalist id="player-list"></datalist>
+            <button onclick="submitGuess()">Guess</button>
+        </div>
+
+        <div id="status-msg" style="height: 20px; color: var(--secondary); margin-bottom: 10px;"></div>
+
+        <div class="hint-container">
+            <div id="hint-1" class="hint-box">Hint 1</div>
+            <div id="hint-2" class="hint-box">Hint 2</div>
+            <div id="hint-3" class="hint-box">Hint 3</div>
+            <div id="hint-4" class="hint-box">Hint 4</div>
+            <div id="hint-5" class="hint-box">Hint 5</div>
+        </div>
+    </div>
+
+    <div id="game-modal" class="modal-overlay">
+        <div class="modal-content" id="modal-content">
+            <img id="modal-img" src="" alt="Player Reveal">
+            <div class="modal-title" id="modal-title"></div>
+            <div id="modal-msg"></div>
+            <button class="play-again-btn" onclick="nextRound()">Play Again</button>
+        </div>
+    </div>
+
+    <script>
+        let playerData = [];
+        let currentPlayer = {};
+        let wrongGuesses = 0;
+        let guessedNames = [];
+        const maxGuesses = 5;
+
+        // 1. Load Data
+        async function loadGame() {
+            try {
+                const response = await fetch('players.json');
+                playerData = await response.json();
+                populateDatalist();
+                nextRound();
+            } catch (error) {
+                console.error("Error loading JSON:", error);
+                document.getElementById('nickname-display').innerText = "Error loading data.";
+            }
+        }
+
+        function populateDatalist() {
+            const datalist = document.getElementById('player-list');
+            datalist.innerHTML = ''; // Clear existing
+            playerData.forEach(p => {
+                let option = document.createElement('option');
+                option.value = p.name;
+                datalist.appendChild(option);
+            });
+        }
+
+        // 2. Start New Round
+        function nextRound() {
+            // Reset State
+            wrongGuesses = 0;
+            guessedNames = [];
+            document.getElementById('game-modal').style.display = 'none';
+            document.getElementById('guess-input').value = "";
+            document.getElementById('guess-input').classList.remove('error');
+            document.getElementById('status-msg').innerText = "";
+            document.getElementById('main-player-img').src = "silhouette.png"; // Reset to silhouette
+
+            // Reset Hints
+            for(let i=1; i<=5; i++) {
+                const box = document.getElementById(`hint-${i}`);
+                box.innerText = `Hint ${i}`;
+                box.classList.remove('revealed');
+            }
+
+            // Pick Random Player
+            currentPlayer = playerData[Math.floor(Math.random() * playerData.length)];
+            
+            // Pick Random Nickname
+            const randomNick = currentPlayer.nicknames[Math.floor(Math.random() * currentPlayer.nicknames.length)];
+            document.getElementById('nickname-display').innerText = `"${randomNick}"`;
+
+            console.log("Answer:", currentPlayer.name); // For debugging
+        }
+
+        // 3. Check Logic
+        function submitGuess() {
+            const input = document.getElementById('guess-input');
+            const userGuess = input.value.trim();
+            const cleanGuess = normalize(userGuess);
+            const cleanName = normalize(currentPlayer.name);
+            const nameParts = cleanName.split(' ');
+
+            // Empty check
+            if (!cleanGuess) return;
+
+            // Check correctness (Full name, First name, or Last name)
+            const isCorrect = (cleanGuess === cleanName) || nameParts.includes(cleanGuess);
+
+            if (isCorrect) {
+                endGame(true);
+            } else {
+                handleWrongGuess(userGuess);
+            }
+            
+            // Clear input after guess
+            input.value = ""; 
+        }
+
+        function handleWrongGuess(wrongName) {
+            const input = document.getElementById('guess-input');
+            
+            // If they already guessed this, just flash red
+            if (guessedNames.includes(wrongName.toLowerCase())) {
+                input.classList.add('error');
+                document.getElementById('status-msg').innerText = "Already guessed!";
+                setTimeout(() => input.classList.remove('error'), 1000);
+                return;
+            }
+
+            // Register new wrong guess
+            guessedNames.push(wrongName.toLowerCase());
+            wrongGuesses++;
+
+            // Turn input red to signify wrong
+            input.classList.add('error');
+            setTimeout(() => input.classList.remove('error'), 1000);
+
+            // Reveal Hint
+            revealHint(wrongGuesses);
+
+            // Check for Game Over (if they use all 5 hints and fail)
+            if (wrongGuesses >= maxGuesses) {
+               document.getElementById('status-msg').innerText = "Out of hints! Try again.";
+            }
+        }
+
+        function revealHint(num) {
+            if (num > 5) return;
+            const box = document.getElementById(`hint-${num}`);
+            let text = "";
+
+            // Mapping your requested hints to boxes
+            // Hint 1: Size & Position
+            // Hint 2: Years
+            // Hint 3: Career Stats
+            // Hint 4: Awards
+            // Hint 5: Teams
+            
+            switch(num) {
+                case 1: 
+                    text = `${currentPlayer.height} | ${currentPlayer.weight} | ${currentPlayer.position}`;
+                    break;
+                case 2: 
+                    text = `Active: ${currentPlayer.years}`;
+                    break;
+                case 3: 
+                    text = `${currentPlayer.points_avg} PPG | ${currentPlayer.rebounds_avg} RPG | ${currentPlayer.assists_avg} APG`;
+                    break;
+                case 4: 
+                     // Grab top 2 awards or 'None' to fit in box
+                     let awards = currentPlayer.awards.split('|').slice(0, 2).join(', ');
+                     text = awards || "No Major Awards";
+                     break;
+                case 5: 
+                    text = currentPlayer.teams; // Might be long, CSS handles wrapping
+                    break;
+            }
+
+            box.innerText = text;
+            box.classList.add('revealed');
+        }
+
+        function endGame(isWin) {
+            const modal = document.getElementById('game-modal');
+            const modalContent = document.getElementById('modal-content');
+            const title = document.getElementById('modal-title');
+            const msg = document.getElementById('modal-msg');
+            const img = document.getElementById('modal-img');
+
+            modal.style.display = 'flex';
+            img.src = currentPlayer.image || "silhouette.png"; // Show real photo
+            
+            if (isWin) {
+                modalContent.className = "modal-content win";
+                title.innerText = "Congratulations!";
+                msg.innerHTML = `You correctly guessed <strong>${currentPlayer.name}</strong>`;
+            } else {
+                // This is triggered if you add a "Give Up" button later
+                modalContent.className = "modal-content loss";
+                title.innerText = "Wrong!";
+                msg.innerHTML = `The player was <strong>${currentPlayer.name}</strong>`;
+            }
+        }
+
+        // Utility: Remove accents and lower case
+        function normalize(str) {
+            return str.toLowerCase()
+                      .normalize("NFD")
+                      .replace(/[\u0300-\u036f]/g, "")
+                      .replace(/'/g, ""); // Remove apostrophes
+        }
+
+        // Start
+        loadGame();
+
+        // Allow "Enter" key to submit
+        document.getElementById('guess-input').addEventListener("keypress", function(event) {
+            if (event.key === "Enter") {
+                submitGuess();
+            }
+        });
+
+    </script>
+</body>
+</html>
