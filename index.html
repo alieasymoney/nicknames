@@ -267,36 +267,37 @@
             const isActiveOnly = document.getElementById('active-only-toggle').checked;
             
             if (isActiveOnly) {
+                console.log("Starting Filter..."); // Debug 1
+                
                 playablePlayers = allPlayers.filter(p => {
-                    // Safety check: if years is missing, skip
-                    if (!p.years) return false;
+                    // SAFETY CHECK: If a player has no years data, skip them (don't crash!)
+                    if (!p.years || typeof p.years !== 'string') {
+                        return false;
+                    }
 
-                    // 1. Grab the last 4 characters of the string
-                    // Example: "2003-04 - 2025-26" -> ends with "-26"
-                    // Example: "2003 - 2026" -> ends with "2026"
-                    
-                    // Let's try to find "2025" or "2026" anywhere in the string
-                    // This is safer than exact matching
-                    const isRecent = p.years.includes("2025") || p.years.includes("2026");
-                    
-                    return isRecent;
+                    // Check for 2026. We use includes() to be safe.
+                    // This finds "2025-26" AND "2026"
+                    return p.years.includes("2026");
                 });
+                
+                console.log("Filter Complete. Found:", playablePlayers.length); // Debug 2
+
             } else {
                 playablePlayers = [...allPlayers];
             }
 
-            // Debugging: If it's still empty, this will tell us why in the Console (F12)
+            // If it's STILL empty, we need to see exactly why
             if (playablePlayers.length === 0 && isActiveOnly) {
-                console.log("DEBUG: No active players found.");
-                console.log("Here is the 'years' value of the first player in your list:");
-                console.log(allPlayers[0].name, ":", allPlayers[0].years);
+                console.log("CRITICAL DEBUG: Here is the first player in your list:");
+                console.log(allPlayers[0]); 
                 
-                alert("No active players found! Check the Console (F12) to see what your 'years' data looks like.");
+                alert("Still 0 players. Open Console (F12) to see the debug info.");
+                
+                // Safety fallback
                 document.getElementById('active-only-toggle').checked = false;
                 playablePlayers = [...allPlayers];
             }
 
-            console.log(`Pool size: ${playablePlayers.length} players`);
             nextRound(); 
         }
 
@@ -488,5 +489,6 @@
     </script>
 </body>
 </html>
+
 
 
