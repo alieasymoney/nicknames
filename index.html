@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NBA Nickname Game Ultimate</title>
+    <title>NBA Nickname Game V1.1</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root {
@@ -346,7 +346,7 @@
                 playablePlayers = allPlayers.filter(p => {
                     if (!p.years || typeof p.years !== 'string') return false;
                     // Robust check: Look for "2026" (current season end)
-                    return p.years.includes("2026");
+                    return p.years.includes("2025-26");
                 });
             } else {
                 playablePlayers = [...allPlayers];
@@ -597,3 +597,4 @@
     </script>
 </body>
 </html>
+
