@@ -3,12 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NBA Guessing Game V3</title>
+    <title>NBA Nickname Game Ultimate</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root {
             --primary: #1d428a; /* NBA Blue */
             --secondary: #c8102e; /* NBA Red */
             --bg-color: #f4f4f4;
+            --gold: #ffc107;
         }
 
         body {
@@ -54,7 +56,7 @@
         h1 { margin: 0; color: #333; font-size: 1.5rem; text-transform: uppercase; letter-spacing: 1px; }
         h2 { margin: 10px 0 20px; color: var(--primary); font-size: 2rem; font-weight: 800; }
 
-        /* --- Settings Toggle --- */
+        /* --- Settings --- */
         .settings-bar {
             margin-bottom: 20px;
             display: flex;
@@ -109,6 +111,22 @@
         }
 
         .suggestion-item:hover { background-color: #f0f0f0; }
+        
+        /* Highlight top suggestion for Enter key logic */
+        .suggestion-item.top-pick { background-color: #eef; font-weight: bold; }
+
+        button.guess-btn {
+            padding: 12px 30px;
+            font-size: 1.1rem;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-bottom: 10px;
+            transition: background 0.2s;
+        }
+        button.guess-btn:hover { background-color: #143066; }
 
         /* --- Hint Boxes --- */
         .hint-container {
@@ -127,6 +145,7 @@
             text-align: center;
             border: 2px dashed #ccc;
             min-height: 20px;
+            transition: all 0.3s ease;
         }
 
         .hint-box.revealed {
@@ -137,7 +156,40 @@
             font-weight: bold;
         }
 
-        /* --- Game Over Modal --- */
+        /* --- Feedback Section --- */
+        .feedback-section {
+            margin-top: 40px;
+            width: 100%;
+            max-width: 600px;
+            text-align: center;
+            font-size: 0.9rem;
+            color: #666;
+            background: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+        }
+        .feedback-input {
+            width: 90%;
+            padding: 10px;
+            margin-top: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-family: inherit;
+            resize: vertical;
+        }
+        .feedback-btn {
+            background-color: #555;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            margin-top: 10px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .feedback-btn:hover { background-color: #333; }
+
+        /* --- Game Over / Rating Modal --- */
         .modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.85);
@@ -148,7 +200,7 @@
 
         .modal-box {
             background: white;
-            padding: 40px;
+            padding: 30px;
             border-radius: 15px;
             text-align: center;
             max-width: 400px;
@@ -164,31 +216,31 @@
             object-fit: cover;
         }
 
-        .modal-title { font-size: 2rem; margin-bottom: 10px; font-weight: bold; }
+        .modal-title { font-size: 2rem; margin-bottom: 5px; font-weight: bold; }
         .win-text { color: #28a745; }
         .lose-text { color: var(--secondary); }
-
-        .btn-reset {
-            background-color: #333;
-            color: white;
-            padding: 12px 24px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 1rem;
-            margin-top: 15px;
-        }
         
-        button.guess-btn {
-            padding: 10px 30px;
-            font-size: 1.2rem;
-            background-color: var(--primary);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            margin-bottom: 10px;
+        .modal-subtitle { margin-top: 20px; font-weight: bold; color: #555; font-size: 1.1rem; }
+        .modal-note { font-size: 0.8rem; color: #999; margin-top: 5px; }
+
+        /* Star Rating Styles */
+        .star-container {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 10px;
         }
+        .star-btn {
+            background: none;
+            border: none;
+            font-size: 2.2rem;
+            color: #ccc;
+            cursor: pointer;
+            transition: transform 0.2s;
+            padding: 0;
+        }
+        .star-btn:hover { transform: scale(1.2); }
+        .star-btn.gold { color: var(--gold); }
 
         @keyframes popIn {
             from { transform: scale(0.8); opacity: 0; }
@@ -228,90 +280,100 @@
         </div>
     </div>
 
+    <div class="feedback-section">
+        <h3>Help me improve!</h3>
+        <textarea id="feedback-text" class="feedback-input" rows="3" placeholder="Found a bug? Have a feature idea? Or just say hi..."></textarea>
+        <br>
+        <button class="feedback-btn" onclick="sendFeedback()">Send Feedback</button>
+        <div id="feedback-msg" style="height:20px; color:green; margin-top:5px; font-weight:bold;"></div>
+    </div>
+
     <div id="game-modal" class="modal-overlay">
         <div class="modal-box">
-            <img id="modal-img" src="" alt="">
+            <img id="modal-img" src="" alt="Player Reveal">
             <div id="modal-title" class="modal-title"></div>
             <div id="modal-msg"></div>
-            <button class="btn-reset" onclick="nextRound()">Play Again</button>
+
+            <div class="modal-subtitle">Rate this Nickname:</div>
+            <div class="star-container" id="star-container" onmouseleave="resetStars()">
+                <button class="star-btn" onmouseover="hoverStar(1)" onclick="submitRating(1)"><i class="fas fa-star"></i></button>
+                <button class="star-btn" onmouseover="hoverStar(2)" onclick="submitRating(2)"><i class="fas fa-star"></i></button>
+                <button class="star-btn" onmouseover="hoverStar(3)" onclick="submitRating(3)"><i class="fas fa-star"></i></button>
+                <button class="star-btn" onmouseover="hoverStar(4)" onclick="submitRating(4)"><i class="fas fa-star"></i></button>
+                <button class="star-btn" onmouseover="hoverStar(5)" onclick="submitRating(5)"><i class="fas fa-star"></i></button>
+            </div>
+            <div class="modal-note">(Click a star to start next round)</div>
         </div>
     </div>
 
-<script>
-        let allPlayers = [];      
-        let playablePlayers = []; 
-        let currentPlayer = {};
-        let wrongGuesses = 0;
-        let guessedNames = [];
+    <script>
+        // =================================================================
+        // 🔴 CONFIGURATION: PASTE YOUR GOOGLE FORM DETAILS HERE 🔴
+        // =================================================================
+        const GOOGLE_FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSfQ9ypJWJm7JGUPUAlZoruUJkSBH90NQ_9hsYi8SXIyIIQVHQ/viewform?usp=pp_url&entry.1199490026=TEST_NICKNAME&entry.1277897801=5&entry.1033500487=TEST_FEEDBACK";
+        
+        // Find these IDs by Inspecting your Google Form (view source -> ctrl+f "entry.")
+        const ENTRY_ID_NICKNAME = "entry.1199490026"; 
+        const ENTRY_ID_RATING   = "entry.1277897801"; 
+        const ENTRY_ID_FEEDBACK = "entry.1033500487"; 
+        // =================================================================
+
+        let allPlayers = [], playablePlayers = [], currentPlayer = {};
+        let wrongGuesses = 0, guessedNames = [];
         const maxGuesses = 5;
 
-        // Load Data
+        // 1. Load Data
         async function loadGame() {
             try {
                 const response = await fetch('players.json');
                 allPlayers = await response.json();
                 
-                // Start with full list by default
+                // Initial filter (default: All players)
                 playablePlayers = [...allPlayers];
-                
-                // Initial filter check (in case browser remembered the checkbox state)
-                toggleActiveOnly();
+                nextRound();
             } catch (error) {
-                console.error("Error:", error);
-                document.getElementById('nickname-display').innerText = "Data Error";
+                console.error("Error loading JSON:", error);
+                document.getElementById('nickname-display').innerText = "Data Error - Check Console";
             }
         }
 
-        // --- FILTER FUNCTION ---
+        // 2. Filter Active Players
         function toggleActiveOnly() {
             const isActiveOnly = document.getElementById('active-only-toggle').checked;
             
             if (isActiveOnly) {
-                console.log("Starting Filter..."); // Debug 1
-                
+                console.log("Filtering for Active players...");
                 playablePlayers = allPlayers.filter(p => {
-                    // SAFETY CHECK: If a player has no years data, skip them (don't crash!)
-                    if (!p.years || typeof p.years !== 'string') {
-                        return false;
-                    }
-
-                    // Check for 2026. We use includes() to be safe.
-                    // This finds "2025-26" AND "2026"
+                    if (!p.years || typeof p.years !== 'string') return false;
+                    // Robust check: Look for "2026" (current season end)
                     return p.years.includes("2026");
                 });
-                
-                console.log("Filter Complete. Found:", playablePlayers.length); // Debug 2
-
             } else {
                 playablePlayers = [...allPlayers];
             }
 
-            // If it's STILL empty, we need to see exactly why
-            if (playablePlayers.length === 0 && isActiveOnly) {
-                console.log("CRITICAL DEBUG: Here is the first player in your list:");
-                console.log(allPlayers[0]); 
-                
-                alert("Still 0 players. Open Console (F12) to see the debug info.");
-                
-                // Safety fallback
+            if (playablePlayers.length === 0) {
+                alert("No active players found in data! Reverting to all.");
                 document.getElementById('active-only-toggle').checked = false;
                 playablePlayers = [...allPlayers];
             }
 
-            nextRound(); 
+            console.log(`Pool size: ${playablePlayers.length}`);
+            nextRound();
         }
 
+        // 3. Round Logic
         function nextRound() {
             wrongGuesses = 0;
             guessedNames = [];
             
-            // Reset UI
+            // UI Reset
             document.getElementById('game-modal').style.display = 'none';
             document.getElementById('guess-input').value = "";
             document.getElementById('status-msg').innerText = "";
-            document.getElementById('main-player-img').src = "silhouette.png";
             document.getElementById('suggestions').style.display = 'none';
-
+            document.getElementById('main-player-img').src = "silhouette.png";
+            
             // Reset Hints
             for(let i=1; i<=5; i++) {
                 const box = document.getElementById(`hint-${i}`);
@@ -319,16 +381,16 @@
                 box.classList.remove('revealed');
             }
 
-            // Pick Random Player
+            // Pick Player
             if (playablePlayers.length > 0) {
                 currentPlayer = playablePlayers[Math.floor(Math.random() * playablePlayers.length)];
                 const randomNick = currentPlayer.nicknames[Math.floor(Math.random() * currentPlayer.nicknames.length)];
                 document.getElementById('nickname-display').innerText = `"${randomNick}"`;
-                console.log("Solution:", currentPlayer.name); 
+                console.log("Answer:", currentPlayer.name);
             }
         }
 
-        // --- CUSTOM DROPDOWN ---
+        // 4. Search & Dropdown Logic
         const inputField = document.getElementById('guess-input');
         const suggestionsBox = document.getElementById('suggestions');
 
@@ -341,7 +403,7 @@
                 return;
             }
 
-            // Filter suggestions based on CURRENT pool (active vs all)
+            // Filter from current pool
             const matches = playablePlayers.filter(p => p.name.toLowerCase().includes(query)).slice(0, 5);
 
             if (matches.length > 0) {
@@ -349,15 +411,12 @@
                 matches.forEach((match, index) => {
                     const div = document.createElement('div');
                     div.className = 'suggestion-item';
+                    if (index === 0) div.classList.add('top-pick'); // Mark top pick
                     div.innerText = match.name;
-                    
-                    // Add a special class to the first item for "Enter" logic
-                    if (index === 0) div.id = "top-suggestion"; 
-
                     div.onclick = function() {
                         inputField.value = match.name;
                         suggestionsBox.style.display = 'none';
-                        submitGuess(); 
+                        submitGuess();
                     };
                     suggestionsBox.appendChild(div);
                 });
@@ -366,13 +425,30 @@
             }
         });
 
+        // Hide dropdown on outside click
         document.addEventListener('click', function(e) {
             if (e.target !== inputField && e.target !== suggestionsBox) {
                 suggestionsBox.style.display = 'none';
             }
         });
 
-        // --- GAME LOGIC ---
+        // Enter Key Logic (Select top suggestion)
+        inputField.addEventListener("keydown", function(event) {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                const topPick = document.querySelector('.suggestion-item.top-pick');
+                
+                if (suggestionsBox.style.display !== 'none' && topPick) {
+                    inputField.value = topPick.innerText;
+                    suggestionsBox.style.display = 'none';
+                    submitGuess();
+                } else {
+                    submitGuess();
+                }
+            }
+        });
+
+        // 5. Game Loop
         function submitGuess() {
             const userGuess = inputField.value.trim();
             if (!userGuess) return;
@@ -386,24 +462,19 @@
             } else {
                 handleWrongGuess(userGuess);
             }
-            
             inputField.value = "";
             suggestionsBox.style.display = 'none';
         }
 
         function handleWrongGuess(wrongName) {
             if (guessedNames.includes(wrongName.toLowerCase())) {
-                document.getElementById('status-msg').innerText = "Already guessed!";
-                document.getElementById('status-msg').style.color = "orange";
+                statusMsg("Already guessed!", "orange");
                 return;
             }
 
             guessedNames.push(wrongName.toLowerCase());
             wrongGuesses++;
-            
-            document.getElementById('status-msg').innerText = "Wrong!";
-            document.getElementById('status-msg').style.color = "red";
-
+            statusMsg("Wrong!", "red");
             revealHint(wrongGuesses);
 
             if (wrongGuesses >= maxGuesses) {
@@ -437,6 +508,18 @@
             }
         }
 
+        function statusMsg(txt, color) {
+            const el = document.getElementById('status-msg');
+            el.innerText = txt;
+            el.style.color = color;
+            setTimeout(() => el.innerText = "", 1500);
+        }
+
+        function normalize(str) {
+            return str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/'/g, "");
+        }
+
+        // 6. End Game Modal
         function endGame(isWin) {
             const modal = document.getElementById('game-modal');
             const title = document.getElementById('modal-title');
@@ -457,38 +540,60 @@
                 msg.innerHTML = `The player was <strong>${currentPlayer.name}</strong>`;
             }
 
+            // Reset stars for the new modal
+            resetStars();
             modal.style.display = 'flex';
         }
 
-        function normalize(str) {
-            return str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/'/g, "");
+        // 7. Star Rating System
+        function hoverStar(rating) {
+            const stars = document.querySelectorAll('.star-btn');
+            stars.forEach((star, index) => {
+                if (index < rating) star.classList.add('gold');
+                else star.classList.remove('gold');
+            });
         }
 
+        function resetStars() {
+            const stars = document.querySelectorAll('.star-btn');
+            stars.forEach(star => star.classList.remove('gold'));
+        }
+
+        function submitRating(rating) {
+            // Send to Google Forms
+            const nickname = document.getElementById('nickname-display').innerText.replace(/"/g, "");
+            
+            const formData = new FormData();
+            formData.append(ENTRY_ID_NICKNAME, nickname);
+            formData.append(ENTRY_ID_RATING, rating);
+
+            fetch(GOOGLE_FORM_URL, { method: "POST", mode: "no-cors", body: formData })
+                .catch(err => console.error("Rating Error:", err));
+
+            // Start Next Round
+            nextRound();
+        }
+
+        // 8. Feedback System
+        function sendFeedback() {
+            const text = document.getElementById('feedback-text').value;
+            if (!text) return;
+
+            const formData = new FormData();
+            formData.append(ENTRY_ID_FEEDBACK, text);
+
+            fetch(GOOGLE_FORM_URL, { method: "POST", mode: "no-cors", body: formData })
+                .then(() => {
+                    document.getElementById('feedback-msg').innerText = "Thanks for the feedback!";
+                    document.getElementById('feedback-text').value = "";
+                    setTimeout(() => document.getElementById('feedback-msg').innerText = "", 3000);
+                })
+                .catch(err => console.error("Feedback Error:", err));
+        }
+
+        // Initialize
         loadGame();
-
-        // --- UPDATED ENTER KEY LOGIC ---
-        inputField.addEventListener("keydown", function(event) {
-            if (event.key === "Enter") {
-                event.preventDefault(); // Stop form submission if inside a form
-                
-                const topSuggestion = document.getElementById('top-suggestion');
-                const suggestionsVisible = suggestionsBox.style.display !== 'none';
-
-                // If suggestions are showing, grab the first one
-                if (suggestionsVisible && topSuggestion) {
-                    inputField.value = topSuggestion.innerText;
-                    suggestionsBox.style.display = 'none';
-                    submitGuess();
-                } else {
-                    // Otherwise, just submit whatever is typed
-                    submitGuess();
-                }
-            }
-        });
 
     </script>
 </body>
 </html>
-
-
-
